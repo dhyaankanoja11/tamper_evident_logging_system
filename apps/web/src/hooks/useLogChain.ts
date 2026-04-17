@@ -36,7 +36,7 @@ export function useLogChain() {
         if (savedLogs && savedLogs.length > 0) {
           setLogs(savedLogs);
         } else {
-          const genesis = await createGenesisBlock(currentSigningKey?.privateKey);
+          const genesis = await createGenesisBlock(currentSigningKey);
           setLogs([genesis]);
         }
       } catch (error) {
@@ -60,7 +60,7 @@ export function useLogChain() {
         eventType, 
         description, 
         prevEntry, 
-        signingKey?.privateKey
+        signingKey
     );
     setLogs(prev => [...prev, newEntry]);
     setVerification(null);
@@ -79,7 +79,7 @@ export function useLogChain() {
           eventType, 
           `Auto-generated dataset entry: simulate system activity ${Math.random().toString(36).substring(7)}`, 
           prevEntry, 
-          signingKey?.privateKey
+          signingKey
       );
       currentLogs.push(newEntry);
     }
@@ -116,7 +116,7 @@ export function useLogChain() {
   const resetLogs = async () => {
     await storage.clearLogs();
     if (signingKey) {
-        const genesis = await createGenesisBlock(signingKey.privateKey);
+        const genesis = await createGenesisBlock(signingKey);
         setLogs([genesis]);
     }
     setVerification(null);

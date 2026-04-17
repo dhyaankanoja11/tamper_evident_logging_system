@@ -21,7 +21,7 @@ export function getISTString(): string {
 /**
  * Enhanced Genesis Block with Digital Signature support
  */
-export async function createGenesisBlock(signingKey?: CryptoKey): Promise<LogEntry> {
+export async function createGenesisBlock(keyPair?: CryptoKeyPair | null): Promise<LogEntry> {
   const genesisEntry: Omit<LogEntry, 'hash' | 'signature' | 'publicKey'> = {
     id: (globalThis.crypto && globalThis.crypto.randomUUID) ? globalThis.crypto.randomUUID() : `gen-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     timestamp: new Date().toISOString(),
@@ -38,9 +38,9 @@ export async function createGenesisBlock(signingKey?: CryptoKey): Promise<LogEnt
   const hash = await calculateHash(JSON.stringify(genesisEntry));
   const entry: LogEntry = { ...genesisEntry, hash };
 
-  if (signingKey) {
-      entry.signature = await signData(hash, signingKey);
-      entry.publicKey = await exportPublicKey(signingKey);
+  if (keyPair && keyPair.privateKey && keyPair.publicKey) {
+      entry.signature = await signData(hash, keyPair.privateKey);
+      entry.publicKey = await exportPublicKey(keyPair.publicKey);
   }
 
   return entry;
@@ -53,7 +53,7 @@ export async function createLog(
     eventType: EventType, 
     description: string, 
     previousLog?: LogEntry,
-    signingKey?: CryptoKey
+    keyPair?: CryptoKeyPair | null
 ): Promise<LogEntry> {
   const prevHash = previousLog ? previousLog.hash : '0'.repeat(64);
   
@@ -73,9 +73,9 @@ export async function createLog(
   const hash = await calculateHash(JSON.stringify(newEntryBase));
   const entry: LogEntry = { ...newEntryBase, hash };
 
-  if (signingKey) {
-      entry.signature = await signData(hash, signingKey);
-      entry.publicKey = await exportPublicKey(signingKey);
+  if (keyPair && keyPair.privateKey && keyPair.publicKey) {
+      entry.signature = await signData(hash, keyPair.privateKey);
+      entry.publicKey = await exportPublicKey(keyPair.publicKey);
   }
 
   return entry;
