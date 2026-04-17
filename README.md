@@ -1,5 +1,12 @@
 # SecureLog v3.0: Enterprise Tamper-Evident Logging
 
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
+![Security](https://img.shields.io/badge/Security-SHA--256%20%7C%20ECDSA-green?style=for-the-badge)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)
+
 ## Overview
 SecureLog is a high-integrity cryptographic audit trail system. Version 3.0 introduces advanced non-repudiation and resilience features, making it suitable for production-grade cybersecurity environments and legal compliance (IT Act 2000 Section 65B).
 

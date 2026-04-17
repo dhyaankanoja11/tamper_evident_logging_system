@@ -13,7 +13,8 @@ import {
   Info,
   LayoutDashboard,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Database
 } from 'lucide-react';
 import { useLogChain } from './hooks/useLogChain';
 import { EventType } from '@securelog/types';
@@ -143,6 +144,15 @@ const App: React.FC = () => {
                 />
                 <button className="secondary-btn" onClick={handleImportClick} title="Import Logs from JSON">
                   <Upload size={18} /> Import
+                </button>
+                <button 
+                  className="secondary-btn" 
+                  onClick={() => generateDataset(50)} 
+                  disabled={isGenerating}
+                  title="Generate a dataset of 50 random logs"
+                >
+                  {isGenerating ? <RefreshCcw className="spin" size={18} /> : <Database size={18} />}
+                  Generate Dataset
                 </button>
                 <button className="secondary-btn" onClick={exportData} title="Export Logs to JSON">
                   <Download size={18} /> Export

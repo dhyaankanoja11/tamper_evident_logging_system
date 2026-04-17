@@ -8,6 +8,7 @@ export function useLogChain() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [verification, setVerification] = useState<VerificationResult | null>(null);
   const [signingKey, setSigningKey] = useState<CryptoKeyPair | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const storage = useMemo(() => {
     const local = new LocalStorageAdapter('tamper_evident_logs');
@@ -48,6 +49,30 @@ export function useLogChain() {
     );
     setLogs(prev => [...prev, newEntry]);
     setVerification(null);
+  };
+
+  const generateDataset = async (count: number = 50) => {
+    if (!signingKey) return;
+    setIsGenerating(true);
+    let currentLogs = [...logs];
+    const eventTypes: EventType[] = ["Login Attempt", "File Access", "Transaction", "System Event", "Aadhaar Auth", "e-KYC Update", "Tax Filing", "CERT-In Report"];
+    
+    // Create logs sequentially to maintain the chain
+    for (let i = 0; i < count; i++) {
+      const prevEntry = currentLogs[currentLogs.length - 1];
+      const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+      const newEntry = await createLog(
+          eventType, 
+          `Auto-generated dataset entry: simulate system activity ${Math.random().toString(36).substring(7)}`, 
+          prevEntry, 
+          signingKey.privateKey
+      );
+      currentLogs.push(newEntry);
+    }
+    
+    setLogs(currentLogs);
+    setVerification(null);
+    setIsGenerating(false);
   };
 
   const verifyChain = useCallback(async () => {
@@ -119,6 +144,8 @@ export function useLogChain() {
     simulateDeletion,
     resetLogs,
     exportData,
-    importData
+    importData,
+    generateDataset,
+    isGenerating
   };
 }
