@@ -67,7 +67,6 @@ export function useLogChain() {
   };
 
   const generateDataset = async (count: number = 50) => {
-    if (!signingKey) return;
     setIsGenerating(true);
     let currentLogs = [...logs];
     const eventTypes: EventType[] = ["Login Attempt", "File Access", "Transaction", "System Event", "Aadhaar Auth", "e-KYC Update", "Tax Filing", "CERT-In Report"];
@@ -80,7 +79,7 @@ export function useLogChain() {
           eventType, 
           `Auto-generated dataset entry: simulate system activity ${Math.random().toString(36).substring(7)}`, 
           prevEntry, 
-          signingKey.privateKey
+          signingKey?.privateKey
       );
       currentLogs.push(newEntry);
     }

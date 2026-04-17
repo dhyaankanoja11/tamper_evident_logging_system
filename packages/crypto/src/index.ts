@@ -1,14 +1,21 @@
+import CryptoJS from 'crypto-js';
+
 /**
  * Calculates the SHA-256 hash of a given string.
  * Uses the Web Crypto API for cryptographic operations.
  */
 export async function calculateHash(data: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(data);
-  const hashBuffer = await globalThis.crypto.subtle.digest('SHA-256', dataBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex;
+  if (globalThis.crypto && globalThis.crypto.subtle) {
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(data);
+    const hashBuffer = await globalThis.crypto.subtle.digest('SHA-256', dataBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+  } else {
+    // Fallback for insecure contexts or browsers lacking subtle crypto
+    return CryptoJS.SHA256(data).toString();
+  }
 }
 
 /**
