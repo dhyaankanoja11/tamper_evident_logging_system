@@ -19,19 +19,31 @@ export function useLogChain() {
 
   useEffect(() => {
     const init = async () => {
-      setIsLoading(true);
-      // Initialize Signing Key for Non-Repudiation (v3.0)
-      const keys = await generateSigningKeyPair();
-      setSigningKey(keys);
+      try {
+        setIsLoading(true);
+        let currentSigningKey: CryptoKeyPair | null = null;
+        
+        // Defensive check for Web Crypto API
+        if (!globalThis.crypto || !globalThis.crypto.subtle) {
+          console.warn("Web Crypto API (subtle) is not available. Digital signatures will be disabled.");
+        } else {
+          // Initialize Signing Key for Non-Repudiation (v3.0)
+          currentSigningKey = await generateSigningKeyPair();
+          setSigningKey(currentSigningKey);
+        }
 
-      const savedLogs = await storage.getLogs();
-      if (savedLogs.length > 0) {
-        setLogs(savedLogs);
-      } else {
-        const genesis = await createGenesisBlock(keys.privateKey);
-        setLogs([genesis]);
+        const savedLogs = await storage.getLogs();
+        if (savedLogs && savedLogs.length > 0) {
+          setLogs(savedLogs);
+        } else {
+          const genesis = await createGenesisBlock(currentSigningKey?.privateKey);
+          setLogs([genesis]);
+        }
+      } catch (error) {
+        console.error("Failed to initialize SecureLog chain:", error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     init();
   }, [storage]);

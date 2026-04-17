@@ -23,7 +23,7 @@ export function getISTString(): string {
  */
 export async function createGenesisBlock(signingKey?: CryptoKey): Promise<LogEntry> {
   const genesisEntry: Omit<LogEntry, 'hash' | 'signature' | 'publicKey'> = {
-    id: globalThis.crypto.randomUUID(),
+    id: (globalThis.crypto && globalThis.crypto.randomUUID) ? globalThis.crypto.randomUUID() : `gen-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     timestamp: new Date().toISOString(),
     istTimestamp: getISTString(),
     eventType: 'System Event',
@@ -58,7 +58,7 @@ export async function createLog(
   const prevHash = previousLog ? previousLog.hash : '0'.repeat(64);
   
   const newEntryBase: Omit<LogEntry, 'hash' | 'signature' | 'publicKey'> = {
-    id: globalThis.crypto.randomUUID(),
+    id: (globalThis.crypto && globalThis.crypto.randomUUID) ? globalThis.crypto.randomUUID() : `log-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     timestamp: new Date().toISOString(),
     istTimestamp: getISTString(),
     eventType,
