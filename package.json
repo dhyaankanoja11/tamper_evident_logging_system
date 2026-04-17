@@ -4,5 +4,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "render-start": "ts-node -P apps/api/tsconfig.json apps/api/src/index.ts"
+  }
 }
