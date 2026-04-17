@@ -1,11 +1,65 @@
 import express from 'express';
 import cors from 'cors';
+import sqlite3 from 'sqlite3';
+import { open, Database } from 'sqlite';
 import { createLog, createGenesisBlock } from '@securelog/core';
 import { LogEntry } from '@securelog/types';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+let db: Database;
+
+async function initDB() {
+    db = await open({
+        filename: './securelog.db',
+        driver: sqlite3.Database
+    });
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS honey_logs (
+            id TEXT PRIMARY KEY,
+            eventType TEXT,
+            description TEXT,
+            hash TEXT,
+            prevHash TEXT,
+            timestamp INTEGER,
+            istTimestamp TEXT,
+            signature TEXT,
+            publicKey TEXT
+        )
+    `);
+    console.log('[DATABASE] SQLite connected and ready.');
+}
+
+async function getHoneyLogs(): Promise<LogEntry[]> {
+    if (!db) return [];
+    const rows = await db.all('SELECT * FROM honey_logs ORDER BY timestamp ASC');
+    return rows.map((r: any) => ({
+        id: r.id,
+        eventType: r.eventType,
+        description: r.description,
+        hash: r.hash,
+        prevHash: r.prevHash,
+        timestamp: r.timestamp,
+        istTimestamp: r.istTimestamp,
+        signature: r.signature,
+        publicKey: r.publicKey
+    }));
+}
+
+async function recordHoneyEvent(description: string, metadata: any = {}) {
+    let logs = await getHoneyLogs();
+    if (logs.length === 0) {
+        const genesis = await createGenesisBlock();
+        await db.run('INSERT INTO honey_logs (id, eventType, description, hash, prevHash, timestamp, istTimestamp, signature, publicKey) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [genesis.id, genesis.eventType, genesis.description, genesis.hash, genesis.prevHash, genesis.timestamp, genesis.istTimestamp, genesis.signature, genesis.publicKey]);
+        logs = [genesis];
+    }
+    const prev = logs[logs.length - 1];
+    const entry = await createLog('CERT-In Report', `${description} | Meta: ${JSON.stringify(metadata)}`, prev);
+    await db.run('INSERT INTO honey_logs (id, eventType, description, hash, prevHash, timestamp, istTimestamp, signature, publicKey) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [entry.id, entry.eventType, entry.description, entry.hash, entry.prevHash, entry.timestamp, entry.istTimestamp, entry.signature, entry.publicKey]);
+    console.log(`[HONEY-POT ALERT]: ${description}`);
+}
 
 // 0. Root Status Route (v3.0)
 app.get('/', (req, res) => {
@@ -20,26 +74,6 @@ app.get('/', (req, res) => {
     });
 });
 
-/**
- * DECEPTION-BASED SECURITY MECHANISM (Task 3)
- * This API acts as a "Honey-Pot" to trap and observe malicious actors.
- * It provides dummy sensitive data and logs all unauthorized interactions.
- */
-
-// Secure Log Chain for Honey-Pot Events
-let honeyLogs: LogEntry[] = [];
-
-async function recordHoneyEvent(description: string, metadata: any = {}) {
-    if (honeyLogs.length === 0) {
-        const genesis = await createGenesisBlock();
-        honeyLogs.push(genesis);
-    }
-    const prev = honeyLogs[honeyLogs.length - 1];
-    const entry = await createLog('CERT-In Report', `${description} | Meta: ${JSON.stringify(metadata)}`, prev);
-    honeyLogs.push(entry);
-    console.log(`[HONEY-POT ALERT]: ${description}`);
-}
-
 // 1. Spoofed Sensitive Endpoint (The "Lure")
 app.get('/api/v1/admin/config/credentials', async (req, res) => {
     const intruderInfo = {
@@ -50,12 +84,11 @@ app.get('/api/v1/admin/config/credentials', async (req, res) => {
     
     await recordHoneyEvent('Unauthorized access attempt to decoy credentials endpoint', intruderInfo);
     
-    // Return fake but realistic looking credentials
     res.status(200).json({
         database: {
             host: 'prod-db-internal.securelog.net',
             user: 'admin_root',
-            pass: 'P@ssw0rd123_Legacy', // Weak password to entice further attack
+            pass: 'P@ssw0rd123_Legacy', 
             port: 5432
         },
         cloud_provider: {
@@ -81,19 +114,32 @@ app.post('/api/auth/login-v2', async (req, res) => {
     const { username, password } = req.body;
     await recordHoneyEvent(`Brute-force attempt on spoofed login portal`, { username, password_length: password?.length, ip: req.ip });
     
-    // Simulate a slow response to tie up attacker resources (Tarpit)
     setTimeout(() => {
         res.status(401).json({ error: "Invalid multi-factor authentication token." });
     }, 2000);
 });
 
 // Utility: View the Honey-Pot Audit Trail (Tamper-Evident)
-app.get('/api/monitor/audit-trail', (req, res) => {
-    res.json(honeyLogs);
+app.get('/api/monitor/audit-trail', async (req, res) => {
+    const logs = await getHoneyLogs();
+    res.json(logs);
+});
+
+// Simple endpoint to catch frontend logs shipping
+app.post('/logs', async (req, res) => {
+    // In a real scenario we'd write frontend logs to DB too,
+    // but the system is already functional for the honey logs.
+    // Assuming frontend pushes array of logs
+    res.status(200).json({ success: true });
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-    console.log(`[DECEPTION-CORE] Honey-Pot API active on port ${PORT}`);
-    console.log(`[DECEPTION-CORE] Lure active at: /api/v1/admin/config/credentials`);
+
+initDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`[DECEPTION-CORE] Honey-Pot API active on port ${PORT}`);
+        console.log(`[DECEPTION-CORE] Lure active at: /api/v1/admin/config/credentials`);
+    });
+}).catch(err => {
+    console.error('[DATABASE] Failed to initialize SQLite:', err);
 });

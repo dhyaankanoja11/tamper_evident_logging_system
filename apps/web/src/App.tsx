@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   ShieldCheck, 
   PlusCircle, 
@@ -14,10 +14,14 @@ import {
   LayoutDashboard,
   ChevronLeft,
   ChevronRight,
-  Database
+  Database,
+  Search,
+  Moon,
+  Sun,
+  X
 } from 'lucide-react';
 import { useLogChain } from './hooks/useLogChain';
-import { EventType } from '@securelog/types';
+import { EventType, LogEntry } from '@securelog/types';
 import { truncateHash } from '@securelog/crypto';
 import { TestSuite } from './components/TestSuite';
 import './App.css';
@@ -32,7 +36,10 @@ const App: React.FC = () => {
     simulateDeletion,
     resetLogs,
     exportData,
-    importData
+    importData,
+    generateDataset,
+    isGenerating,
+    isLoading
   } = useLogChain();
 
   const [view, setView] = useState<'dashboard' | 'analysis'>('dashboard');
@@ -40,18 +47,66 @@ const App: React.FC = () => {
   const [description, setDescription] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<string>('All');
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }, [isDarkMode]);
+
+  // Basic routing for 404
+  const path = window.location.pathname;
+  if (path !== '/' && path !== '/index.html') {
+    return (
+      <div className="not-found">
+        <h1>404</h1>
+        <p>The page you are looking for does not exist or has been moved to secure cold storage.</p>
+        <button onClick={() => window.location.href = '/'} className="secondary-btn" style={{marginTop: '2rem'}}>Return to Dashboard</button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container">
+         <aside className="sidebar skeletal box" style={{width: 250, border: 'none'}}></aside>
+         <main className="main-content">
+            <div className="skeletal box" style={{height: 100, marginBottom: '2rem'}}></div>
+            <div className="content-grid">
+               <div className="input-column skeletal box" style={{height: 400}}></div>
+               <div className="chain-column skeletal box" style={{height: 600}}></div>
+            </div>
+         </main>
+      </div>
+    );
+  }
+
+  const filteredLogs = logs.filter(log => {
+    const matchesSearch = log.description.toLowerCase().includes(searchQuery.toLowerCase()) || log.hash.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = filterType === 'All' || log.eventType === filterType;
+    return matchesSearch && matchesType;
+  });
+
   const pageSize = 10;
-  const totalPages = Math.ceil(logs.length / pageSize) || 1;
+  const totalPages = Math.ceil(filteredLogs.length / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
-  const paginatedLogs = logs.slice(startIndex, startIndex + pageSize);
+  const paginatedLogs = filteredLogs.slice(startIndex, startIndex + pageSize);
 
   const handleAddLog = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim()) return;
     addLog(eventType, description);
     setDescription('');
+    setSearchQuery('');
+    setFilterType('All');
     setCurrentPage(Math.ceil((logs.length + 1) / pageSize));
   };
 
@@ -79,7 +134,7 @@ const App: React.FC = () => {
     const content = `
       CERTIFICATE UNDER SECTION 65B OF THE INDIAN EVIDENCE ACT
       ---------------------------------------------------------
-      System Name: SECURELOG (v2.0-Production-Ready)
+      System Name: SECURELOG (v3.0-Production-Ready)
       System ID: SECURELOG-01
       Status: ${verification?.isValid ? 'INTEGRITY VERIFIED' : 'PENDING VERIFICATION'}
       Total Chain Length: ${logs.length} entries
@@ -103,6 +158,31 @@ const App: React.FC = () => {
 
   return (
     <div className="container">
+      {selectedLog && (
+        <div className="modal-overlay" onClick={() => setSelectedLog(null)}>
+           <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                 <h3><FileText size={20} style={{display: 'inline', marginRight: 8}}/> Log Entry Detail</h3>
+                 <button className="modal-close" onClick={() => setSelectedLog(null)}><X size={24} /></button>
+              </div>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                 <p><strong>ID:</strong> {selectedLog.id}</p>
+                 <p><strong>Type:</strong> {selectedLog.eventType}</p>
+                 <p><strong>Timestamp:</strong> {selectedLog.istTimestamp}</p>
+                 <p><strong>Description:</strong> {selectedLog.description}</p>
+                 <p><strong>Hash:</strong> <br/><code style={{wordBreak: 'break-all'}}>{selectedLog.hash}</code></p>
+                 <p><strong>Prev Hash:</strong> <br/><code style={{wordBreak: 'break-all'}}>{selectedLog.prevHash}</code></p>
+                 {selectedLog.signature && (
+                   <p><strong>Signature (ECDSA-P256):</strong> <br/><code style={{wordBreak: 'break-all', color: 'var(--valid-color)'}}>{selectedLog.signature}</code></p>
+                 )}
+                 {selectedLog.publicKey && (
+                   <p><strong>Public Key:</strong> <br/><code style={{wordBreak: 'break-all'}}>{selectedLog.publicKey}</code></p>
+                 )}
+              </div>
+           </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="brand">
@@ -122,9 +202,13 @@ const App: React.FC = () => {
           >
             <Info size={20} /> System Analysis
           </button>
+          <button onClick={() => setIsDarkMode(!isDarkMode)}>
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />} 
+            {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+          </button>
         </nav>
         <div className="sidebar-footer">
-          <p>Production Ready v2.0</p>
+          <p>Production Ready v3.0</p>
           <p>Cybersecurity Assessment</p>
         </div>
       </aside>
@@ -195,7 +279,7 @@ const App: React.FC = () => {
                 <ShieldCheck size={24} />
                 <div className="summary-details">
                   <h3>Integrity Verified</h3>
-                  <p>All cryptographic linkages are intact. Zero modifications detected.</p>
+                  <p>All cryptographic linkages are intact. Zero modifications detected. ECDSA Signatures Valid.</p>
                 </div>
               </div>
             )}
@@ -276,17 +360,43 @@ const App: React.FC = () => {
                   <div className="chain-header">
                     <h3><Activity size={20} /> IMMUTABLE AUDIT TRAIL</h3>
                     <div className="chain-stats">
-                      <span>ENTRIES: {logs.length}</span>
+                      <span>TOTAL: {logs.length}</span>
                     </div>
                   </div>
+                  
+                  <div className="filters-bar" style={{padding: '0 1rem', marginTop: '1rem'}}>
+                    <div className="form-group search-input" style={{marginBottom: 0}}>
+                      <div style={{display: 'flex', alignItems: 'center', border: 'var(--border-width) solid var(--border-color)', background: 'var(--input-bg)'}}>
+                        <Search size={18} style={{marginLeft: '8px', color: 'var(--text-muted)'}}/>
+                        <input 
+                          type="text" 
+                          placeholder="Search logs or hashes..." 
+                          value={searchQuery}
+                          onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                          style={{border: 'none', flexGrow: 1}}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-group" style={{marginBottom: 0, width: '200px'}}>
+                      <select value={filterType} onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}>
+                        <option value="All">All Events</option>
+                        <option value="Login Attempt">Login Attempt</option>
+                        <option value="File Access">File Access</option>
+                        <option value="Transaction">Transaction</option>
+                        <option value="System Event">System Event</option>
+                        <option value="CERT-In Report">CERT-In Report</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="chain-list">
-                    {paginatedLogs.map((log, i) => {
-                      const absoluteIndex = startIndex + i;
+                    {paginatedLogs.map((log) => {
+                      const absoluteIndex = logs.findIndex(l => l.id === log.id);
                       const isTampered = verification?.tamperedIndices.includes(absoluteIndex);
                       const showStatus = verification !== null;
                       
                       return (
-                        <div key={log.id} className={`log-entry ${showStatus ? (isTampered ? 'tampered' : 'valid') : ''}`}>
+                        <div key={log.id} onClick={() => setSelectedLog(log)} className={`log-entry ${showStatus ? (isTampered ? 'tampered' : 'valid') : ''}`}>
                           <div className="log-meta">
                             <span className="index">#{absoluteIndex}</span>
                             <span className="timestamp">{log.istTimestamp}</span>
@@ -312,6 +422,11 @@ const App: React.FC = () => {
                         </div>
                       );
                     })}
+                    {paginatedLogs.length === 0 && (
+                      <div style={{textAlign: 'center', color: 'var(--text-muted)', padding: '2rem'}}>
+                        No logs match your search filters.
+                      </div>
+                    )}
                   </div>
                   
                   {/* Pagination Controls */}
@@ -339,24 +454,25 @@ const App: React.FC = () => {
         ) : (
           <div className="analysis-page">
             <header className="page-header">
-              <h2>System Security Analysis (v2.0)</h2>
+              <h2>System Security Analysis (v3.0)</h2>
             </header>
             <div className="analysis-grid">
               <section className="analysis-card">
                 <h3>Pluggable Storage Architecture</h3>
-                <p>The system now supports Pluggable Storage Adapters (LocalStorage, MockWORMAdapter). The adapter architecture allows direct drop-in replacements for remote secure storage while enforcing strict Write-Once-Read-Many constraints to prevent local deletions.</p>
+                <p>The system supports Pluggable Storage Adapters (LocalStorage, RemoteShippingAdapter). The adapter architecture allows direct drop-in replacements for remote secure storage while enforcing strict Write-Once-Read-Many constraints.</p>
               </section>
               <section className="analysis-card">
                 <h3>O(n) Verification & Pinpointing</h3>
-                <p>The cryptographic chaining enables not just breach detection, but exact localization. The upgraded verification engine pinpoints the specific index and cause (Hash Mismatch vs Broken Linkage), greatly improving forensic incident response capabilities.</p>
+                <p>The cryptographic chaining enables not just breach detection, but exact localization. The upgraded verification engine pinpoints the specific index and cause (Hash Mismatch vs Broken Linkage), greatly improving incident response.</p>
               </section>
               <section className="analysis-card full-width">
                 <h3>Technical Specification</h3>
                 <div className="spec-table">
                   <div className="spec-row"><span>Algorithm</span><span>SHA-256 (NIST FIPS 180-4)</span></div>
+                  <div className="spec-row"><span>Signatures</span><span>ECDSA (P-256 Curve)</span></div>
                   <div className="spec-row"><span>Architecture</span><span>Linked Cryptographic Hash Chain</span></div>
-                  <div className="spec-row"><span>Storage</span><span>Adapter Interface (Extensible for Blockchain / WORM)</span></div>
-                  <div className="spec-row"><span>Compliance</span><span>Ready for IT Act 2000 Section 65B integration</span></div>
+                  <div className="spec-row"><span>Storage</span><span>Adapter Interface (Ready for Blockchain/WORM)</span></div>
+                  <div className="spec-row"><span>Compliance</span><span>Ready for IT Act 2000 Section 65B</span></div>
                 </div>
               </section>
             </div>

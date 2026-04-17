@@ -9,6 +9,7 @@ export function useLogChain() {
   const [verification, setVerification] = useState<VerificationResult | null>(null);
   const [signingKey, setSigningKey] = useState<CryptoKeyPair | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const storage = useMemo(() => {
     const local = new LocalStorageAdapter('tamper_evident_logs');
@@ -18,6 +19,7 @@ export function useLogChain() {
 
   useEffect(() => {
     const init = async () => {
+      setIsLoading(true);
       // Initialize Signing Key for Non-Repudiation (v3.0)
       const keys = await generateSigningKeyPair();
       setSigningKey(keys);
@@ -29,6 +31,7 @@ export function useLogChain() {
         const genesis = await createGenesisBlock(keys.privateKey);
         setLogs([genesis]);
       }
+      setIsLoading(false);
     };
     init();
   }, [storage]);
@@ -146,6 +149,7 @@ export function useLogChain() {
     exportData,
     importData,
     generateDataset,
-    isGenerating
+    isGenerating,
+    isLoading
   };
 }
