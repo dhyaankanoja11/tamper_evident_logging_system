@@ -41,10 +41,14 @@ async function getHoneyLogs(): Promise<LogEntry[]> {
         description: r.description,
         hash: r.hash,
         prevHash: r.prevHash,
-        timestamp: r.timestamp,
+        timestamp: String(r.timestamp),
         istTimestamp: r.istTimestamp,
         signature: r.signature,
-        publicKey: r.publicKey
+        publicKey: r.publicKey,
+        metadata: {
+            systemId: 'SECURELOG-HONEY',
+            compliance: 'IT-ACT-65B'
+        }
     }));
 }
 
