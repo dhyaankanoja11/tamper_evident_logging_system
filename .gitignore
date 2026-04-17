@@ -1,0 +1,28 @@
+# Dependency Directories
+node_modules/
+dist/
+build/
+.cache/
+
+# Internship Specific (Hidden for Deployment)
+REPORT.md
+GEMINI.md
+Cybersecurity.pdf
+DEPLOYMENT.md
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Files
+.DS_Store
+Thumbs.db

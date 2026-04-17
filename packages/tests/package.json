@@ -1,0 +1,13 @@
+{
+  "name": "@securelog/tests",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^0.34.0",
+    "@securelog/core": "*",
+    "@securelog/types": "*",
+    "@securelog/crypto": "*"
+  }
+}

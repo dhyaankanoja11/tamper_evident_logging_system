@@ -1,0 +1,8 @@
+{
+  "name": "securelog-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

@@ -1,0 +1,67 @@
+:root {
+  --bg-color: #ffffff;
+  --text-color: #000000;
+  --border-color: #000000;
+  --accent-color: #333333;
+  --valid-color: #00ff00;
+  --invalid-color: #ff0000;
+  --warning-color: #ffff00;
+  --border-width: 2px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.4;
+  overflow-x: hidden;
+}
+
+button, select, textarea, input {
+  font-family: inherit;
+  font-size: 1rem;
+  border: var(--border-width) solid var(--border-color);
+  padding: 0.5rem;
+  background: white;
+  cursor: pointer;
+  border-radius: 0;
+  transition: transform 0.1s, background-color 0.1s;
+}
+
+button:hover {
+  background-color: #f0f0f0;
+  transform: translate(-2px, -2px);
+  box-shadow: 2px 2px 0px var(--border-color);
+}
+
+button:active {
+  transform: translate(0, 0);
+  box-shadow: none;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+code {
+  background: #eee;
+  padding: 2px 4px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
