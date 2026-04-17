@@ -7,6 +7,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 0. Root Status Route (v3.0)
+app.get('/', (req, res) => {
+    res.status(200).json({
+        status: "SECURELOG-CORE-ACTIVE",
+        version: "3.0",
+        message: "Honey-Pot Deception API is live.",
+        endpoints: {
+            lure: "/api/v1/admin/config/credentials",
+            audit: "/api/monitor/audit-trail"
+        }
+    });
+});
+
 /**
  * DECEPTION-BASED SECURITY MECHANISM (Task 3)
  * This API acts as a "Honey-Pot" to trap and observe malicious actors.
